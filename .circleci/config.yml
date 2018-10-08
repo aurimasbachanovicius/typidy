@@ -1,0 +1,81 @@
+default: &default
+  working_directory: ~/go/src/github.com/3auris/typidy
+
+version: 2
+jobs:
+  deploy:
+    <<: *default
+    machine:
+      enabled: true
+    steps:
+    - attach_workspace:
+        at: ~/go/src/github.com/3auris/typidy
+
+    - add_ssh_keys:
+        fingerprints:
+        - "a4:ea:1a:a8:f0:c7:4b:db:b8:4d:ad:47:a3:f4:ef:7e"
+
+    - run:
+        name: RSync
+        command: |
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress ./ $SSH_USER@$SSH_HOST:~/typidy/
+    - run:
+        name: Stop old and start new Application
+        command: |
+          ssh $SSH_USER@$SSH_HOST "killall -15 typidy; cd typidy; ./typidy > server-log.log ~/ 2>&1 &"
+  build:
+    <<: *default
+
+    docker:
+    - image: circleci/golang:1.10
+
+    environment:
+      TEST_RESULTS: /tmp/test-results
+
+    steps:
+    - checkout
+    - attach_workspace:
+        at: ~/go/src/github.com/3auris/typidy
+
+    - run: mkdir -p $TEST_RESULTS
+    - run: go get github.com/jstemmer/go-junit-report
+    - run:
+        name: Getting dependencies
+        command: |
+          go get -v -t -d ./...
+
+    - run:
+        name: Starting tests
+        command: |
+          trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
+          go test -v ./... | tee ${TEST_RESULTS}/go-test.out
+
+    - run:
+        name: Building executable
+        command: |
+          go build
+
+    - persist_to_workspace:
+        root: .
+        paths:
+        - typidy
+        - static/
+
+    - store_artifacts:
+        path: /tmp/test-results
+        destination: raw-test-output
+
+    - store_test_results:
+        path: /tmp/test-results
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+    - build
+    - deploy:
+        requires:
+        - build
+        filters:
+          branches:
+            only: master
