@@ -20,7 +20,7 @@ func main() {
 	go hub.Run()
 
 	http.Handle("/", http.FileServer(http.Dir("static")))
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/chat-socket", func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println(err)
@@ -33,7 +33,6 @@ func main() {
 		go client.WritePump()
 		go client.ReadPump()
 	})
-
 	err := http.ListenAndServe(":"+*apiPort, nil)
 
 	if err != nil {

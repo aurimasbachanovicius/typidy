@@ -11,6 +11,10 @@ window.onload = function () {
             return false;
         }
 
+        if (!msg.value) {
+            return false;
+        }
+
         conn.send(msg.value + "\n");
 
         msg.value = "";
@@ -28,41 +32,43 @@ window.onload = function () {
         return false;
     };
 
-    if (!window["WebSocket"]) {
-        let item = document.createElement("div");
-        item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
-        appendLog(item);
-    }
+    conn = new WebSocket("ws://" + document.location.host + "/chat-socket");
 
-    conn = new WebSocket("ws://" + document.location.host + "/ws");
-    
     conn.onmessage = function (event) {
         let message = JSON.parse(event.data);
 
         let writingSpotID = "writing-" + message["client_id"];
         let writingSpot = document.getElementById(writingSpotID);
 
-        console.log(message);
-
         let isTyping = message["typing"] === true;
 
+        if (message["message"].length === 0) {
+            writingSpot.remove();
+
+            return;
+        }
+
         if (writingSpot && isTyping) {
-            writingSpot.innerText = message["message"];
+            writingSpot.innerText = namedMessage(message);
 
             return;
         }
 
         if (isTyping) {
             let newWritingSpot = document.createElement("div");
-            newWritingSpot.innerText = message["message"];
+            newWritingSpot.innerText = namedMessage(message);
             newWritingSpot.id = "writing-" + message["client_id"];
 
             writingMsg.appendChild(newWritingSpot);
         } else {
             let committedMessage = document.createElement("div");
-            committedMessage.innerText = message["message"];
+            committedMessage.innerText = namedMessage(message);
 
             committedMsg.appendChild(committedMessage)
         }
     };
+
+    function namedMessage(msg) {
+        return msg["client_id"] + ": " + msg["message"];
+    }
 };

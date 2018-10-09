@@ -14,12 +14,6 @@ var (
 	space   = []byte{' '}
 )
 
-type Message struct {
-	Typing   bool   `json:"typing"`
-	Message  string `json:"message"`
-	ClientID int    `json:"client_id"`
-}
-
 // Client is a middleman between the websocket connection and the chat.
 type Client struct {
 	ID int64
@@ -73,6 +67,8 @@ func (c *Client) ReadPump() {
 		split := strings.Split(string(message[:]), "\n")
 		if len(split) > 1 {
 			msg.Typing = false
+
+			c.Hub.RegisterHistory <- msg
 		}
 
 		c.Hub.Broadcast <- msg
