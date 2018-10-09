@@ -45,22 +45,15 @@ func (h *Hub) Run() {
 		case client := <-h.Register:
 			h.Clients[client] = true
 			for _, msg := range h.MsgHistory {
-				select {
-				case client.Send <- msg:
-				default:
-					close(client.Send)
-				}
+				client.Send <- msg
 			}
-
 		case client := <-h.Unregister:
 			if _, ok := h.Clients[client]; ok {
 				delete(h.Clients, client)
 				close(client.Send)
 			}
-
 		case message := <-h.RegisterHistory:
 			h.MsgHistory = append(h.MsgHistory, message)
-
 		case message := <-h.Broadcast:
 			for client := range h.Clients {
 				select {
