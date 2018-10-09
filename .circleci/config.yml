@@ -22,7 +22,7 @@ jobs:
     - run:
         name: Stop old services
         command: |
-          ssh $SSH_USER@$SSH_HOST "killall -15 typidy"
+          ssh $SSH_USER@$SSH_HOST "killall -15 typidy 2>&1 &"
     - run:
         name: Start new service
         command: |
