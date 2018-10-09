@@ -56,17 +56,25 @@ window.onload = function () {
 
         if (isTyping) {
             let newWritingSpot = document.createElement("div");
-            newWritingSpot.innerText = namedMessage(message);
             newWritingSpot.id = "writing-" + message["client_id"];
 
-            writingMsg.appendChild(newWritingSpot);
+            appendMessage(writingMsg, newWritingSpot, message)
         } else {
             let committedMessage = document.createElement("div");
-            committedMessage.innerText = namedMessage(message);
-
-            committedMsg.appendChild(committedMessage)
+            appendMessage(committedMsg, committedMessage, message);
         }
     };
+
+    function appendMessage(element, messageElement, message) {
+        let doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
+
+        messageElement.innerText = namedMessage(message);
+        element.appendChild(messageElement);
+
+        if (doScroll) {
+            log.scrollTop = log.scrollHeight - log.clientHeight;
+        }
+    }
 
     function namedMessage(msg) {
         return msg["client_id"] + ": " + msg["message"];
