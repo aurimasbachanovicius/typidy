@@ -20,9 +20,13 @@ jobs:
         command: |
           rsync -avz -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress ./ $SSH_USER@$SSH_HOST:~/typidy/
     - run:
-        name: Stop old and start new Application
+        name: Stop old services
         command: |
-          ssh $SSH_USER@$SSH_HOST "killall -15 typidy; cd typidy; ./typidy > server-log.log ~/ 2>&1 &"
+          ssh $SSH_USER@$SSH_HOST "killall -15 typidy"
+    - run:
+        name: Start new service
+        command: |
+          ssh $SSH_USER@$SSH_HOST "cd typidy; ./typidy > server-log.log ~/ 2>&1 &"
   build:
     <<: *default
 
