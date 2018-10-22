@@ -1,6 +1,6 @@
 # typidy - simple chat
 
-/chat - go chat application's hub and client
-/static - html/css/js of frontpage
+* /chat - go chat application's hub and client
+* /static - html/css/js of frontpage
 
-example of chat: aurimasb.lt:8080
+example of chat: http://aurimasb.lt:8080
