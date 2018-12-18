@@ -3,6 +3,7 @@ package chat
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"strings"
@@ -14,16 +15,10 @@ var (
 	space   = []byte{' '}
 )
 
-// Client is a middleman between the websocket connection and the chat.
 type Client struct {
-	ID int64
-
-	Hub *Hub
-
-	// The websocket connection.
+	ID   int64
+	Hub  *Hub
 	Conn *websocket.Conn
-
-	// Buffered channel of outbound messages.
 	Send chan Message
 }
 
@@ -36,15 +31,10 @@ func NewClient(hub *Hub, conn *websocket.Conn) *Client {
 	}
 }
 
-// ReadPump pumps messages from the websocket connection to the chat.
-//
-// The application runs readPump in a per-connection goroutine. The application
-// ensures that there is at most one reader on a connection by executing all
-// reads from this goroutine.
 func (c *Client) ReadPump() {
 	defer func() {
 		c.Hub.Unregister <- c
-		c.Conn.Close()
+		_ = c.Conn.Close()
 	}()
 
 	for {
@@ -75,20 +65,23 @@ func (c *Client) ReadPump() {
 	}
 }
 
-// WritePump pumps messages from the chat to the websocket connection.
-//
-// A goroutine running writePump is started for each connection. The
-// application ensures that there is at most one writer to a connection by
-// executing all writes from this goroutine.
 func (c *Client) WritePump() {
-	defer c.Conn.Close()
+	defer func() {
+		err := c.Conn.Close()
+		if err != nil {
+			fmt.Printf("error in writepump: %v", err)
+		}
+	}()
 
 	for {
 		select {
 		case message, ok := <-c.Send:
 			if !ok {
 				// The chat closed the channel.
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				err := c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				if err != nil {
+					fmt.Printf("error writing message: %v", err)
+				}
 				return
 			}
 
@@ -99,7 +92,10 @@ func (c *Client) WritePump() {
 
 			jsoned, _ := json.Marshal(message)
 
-			w.Write(jsoned)
+			_, err = w.Write(jsoned)
+			if err != nil {
+				fmt.Printf("error writing json data to writer: %v", err)
+			}
 
 			if err := w.Close(); err != nil {
 				return
